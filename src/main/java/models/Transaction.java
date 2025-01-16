@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
  */
 public class Transaction implements Serializable {
     private BigDecimal amount;
+    private String date;
     private TransactionType type;
     private String category;
 
@@ -19,8 +20,9 @@ public class Transaction implements Serializable {
      * @param type Тип транзакции.
      * @param category Категория транзакции.
      */
-    public Transaction(BigDecimal amount, LocalDateTime date, TransactionType type, String category) {
+    public Transaction(BigDecimal amount, String date, TransactionType type, String category) {
         this.amount = amount;
+        this.date = date;
         this.type = type;
         this.category = category;
     }
@@ -28,6 +30,11 @@ public class Transaction implements Serializable {
     // Геттер для получения суммы транзакции.
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    // Геттер для получения времени транзакции.
+    public String getDate() {
+        return date;
     }
 
     // Геттер для получения категории транзакции.

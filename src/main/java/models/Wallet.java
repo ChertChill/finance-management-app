@@ -3,6 +3,7 @@ package models;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -34,6 +35,11 @@ public class Wallet implements Serializable {
         return balance;
     }
 
+    // Геттер для получения списка транзакций
+    public List<Transaction> getTransactions() {
+        return new ArrayList<>(transactions);
+    }
+
     /**
      * Метод для добавления дохода в кошелек.
      * Увеличивает баланс и добавляет новую транзакцию типа INCOME.
@@ -42,7 +48,7 @@ public class Wallet implements Serializable {
      */
     public void addIncome(BigDecimal amount, String category) {
         balance = balance.add(amount);
-        transactions.add(new Transaction(amount, LocalDateTime.now(), TransactionType.INCOME, category));
+        transactions.add(new Transaction(amount, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")), TransactionType.INCOME, category));
     }
 
     /**
@@ -54,9 +60,16 @@ public class Wallet implements Serializable {
      * @throws IllegalArgumentException Если недостаточно средств для расхода.
      */
     public void addExpense(BigDecimal amount, String category) {
+        // Проверка превышения лимита бюджета по категории
+        BigDecimal remainingBudget = getBudgetRemain(category);
+        if (remainingBudget.compareTo(amount) < 0) {
+            System.out.println("Превышен лимит бюджета для категории: " + category);
+        }
+
+        // Проверка превышения баланса
         if (balance.compareTo(amount) >= 0) {
             balance = balance.subtract(amount);
-            transactions.add(new Transaction(amount, LocalDateTime.now(), TransactionType.EXPENSE, category));
+            transactions.add(new Transaction(amount, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")), TransactionType.EXPENSE, category));
         } else {
             throw new IllegalArgumentException("Недостаточно средств.");
         }
@@ -69,40 +82,14 @@ public class Wallet implements Serializable {
      */
     public List<Transaction> getTransactionsByCategory(String category) {
         List<Transaction> result = new ArrayList<>();
+
         for (Transaction t : transactions) {
             if (t.getCategory().equals(category)) {
                 result.add(t);
             }
         }
+
         return result;
-    }
-
-    /**
-     * Получение всех уникальных категорий транзакций и бюджетов.
-     * @return Множество категорий, включающее все транзакции и бюджетные категории.
-     */
-    public Set<String> getAllCategories() {
-        Set<String> categories = new HashSet<>();
-        for (Transaction t : transactions) {
-            categories.add(t.getCategory());
-        }
-        categories.addAll(budgets.keySet());
-        return categories;
-    }
-
-    /**
-     * Получение состояния бюджета для определенной категории.
-     * Показывает общий бюджет и потраченные средства.
-     * @param category Категория для проверки бюджета.
-     * @return Строка с информацией о бюджете для указанной категории.
-     */
-    public String getBudgetStatus(String category) {
-        BigDecimal budget = budgets.getOrDefault(category, BigDecimal.ZERO);
-        BigDecimal spent = transactions.stream()
-                .filter(t -> t.getCategory().equals(category) && t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return "Бюджет для " + category + ": " + budget + ", потрачено: " + spent;
     }
 
     /**
@@ -115,18 +102,41 @@ public class Wallet implements Serializable {
     }
 
     /**
+     * Получение информации о бюджете для определенной категории.
+     * Показывает общий бюджет.
+     * @param category Категория для проверки бюджета.
+     * @return Числовое значение общего бюджета для указанной категории.
+     */
+    public BigDecimal getBudget(String category) {
+        return budgets.getOrDefault(category, BigDecimal.ZERO);
+    }
+
+    public Map<String, BigDecimal> getBudgets() {
+        return new HashMap<>(budgets);
+    }
+
+    /**
+     * Получение информации о потраченном бюджете для определенной категории.
+     * Показывает потраченный бюджет.
+     * @param category Категория для проверки бюджета.
+     * @return Числовое значение потраченного бюджета для указанной категории.
+     */
+    public BigDecimal getBudgetSpent(String category) {
+        return transactions.stream()
+                .filter(t -> t.getCategory().equals(category) && t.getType() == TransactionType.EXPENSE)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
      * Получение оставшегося бюджета для категории.
      * Рассчитывает разницу между установленным бюджетом и потраченными средствами.
      * @param category Категория для вычисления оставшегося бюджета.
      * @return Оставшийся бюджет для категории.
      */
-
-    public BigDecimal getRemainingBudget(String category) {
-        BigDecimal budget = budgets.getOrDefault(category, BigDecimal.ZERO);
-        BigDecimal spent = transactions.stream()
-                .filter(t -> t.getCategory().equals(category) && t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    public BigDecimal getBudgetRemain(String category) {
+        BigDecimal budget = getBudget(category);
+        BigDecimal spent = getBudgetSpent(category);
         return budget.subtract(spent);
     }
 }

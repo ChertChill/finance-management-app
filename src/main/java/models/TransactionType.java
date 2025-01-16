@@ -6,6 +6,6 @@ package models;
  * - INCOME: Доход.
  * - EXPENSE: Расход.
  */
-enum TransactionType {
-    INCOME, EXPENSE;
+public enum TransactionType {
+    INCOME, EXPENSE
 }
