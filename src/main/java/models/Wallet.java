@@ -12,8 +12,8 @@ import java.util.*;
  */
 public class Wallet implements Serializable {
     private BigDecimal balance;
-    private List<Transaction> transactions;
-    private Map<String, BigDecimal> budgets;
+    private final List<Transaction> transactions;
+    private final Map<String, BigDecimal> budgets;
 
     /**
      * Конструктор по умолчанию для инициализации кошелька.

@@ -45,6 +45,52 @@ public class FinanceService {
     }
 
     /**
+     * Метод для перевода средств между пользователями.
+     * Осуществляет перевод средств от одного пользователя к другому.
+     * Фиксирует расход у отправителя и доход у получателя.
+     *
+     * @param sender Отправитель перевода (пользователь, который переводит средства)
+     * @param recipientUsername Логин получателя перевода
+     * @param amount Сумма перевода
+     * @param authService Сервис для получения списка всех пользователей
+     * @return true, если перевод успешен, иначе false
+     */
+    public boolean addTransfer(User sender, String recipientUsername, BigDecimal amount, AuthService authService) {
+        // Проверяем, что не переводим сами себе
+        if (sender.getUsername().equals(recipientUsername)) {
+            throw new IllegalArgumentException("В качестве получателя указан текущий пользователь. Нельзя отправить перевод самому себе.");
+        }
+
+        // Проверяем, что сумма перевода положительная
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Вводимое значение должно быть положительным числом.");
+        }
+
+        // Проверяем, что у отправителя есть достаточно средств
+        if (sender.getWallet().getBalance().compareTo(amount) < 0) {
+            System.out.println("Ошибка: У вас недостаточно средств для перевода.");
+            return false;
+        }
+
+        // Находим получателя через AuthService
+        User recipient = authService.getAllUsers().get(recipientUsername);
+        if (recipient == null) {
+            System.out.println("Ошибка: Получатель с таким логином не найден.");
+            return false;
+        }
+
+        // Выполняем перевод: уменьшение баланса отправителя и увеличение баланса получателя
+        try {
+            addExpense(sender, String.format("Перевод средств к %s", recipient.getUsername()), amount);  // Фиксируем расход у отправителя
+            addIncome(recipient, String.format("Перевод средств от %s", sender.getUsername()), amount); // Фиксируем доход у получателя
+            return true;
+        } catch (Exception e) {
+            System.out.println("Ошибка при выполнении перевода: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Возвращает полную информацию о финансах пользователя.
      * Включает баланс, суммы доходов/расходов и список операций.
      *

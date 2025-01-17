@@ -19,6 +19,7 @@ public class AuthService {
      * При инициализации пытаемся загрузить данные о пользователях из файла.
      * Если загрузка не удалась, инициализируем пустую коллекцию пользователей.
      */
+    @SuppressWarnings("unchecked")
     public AuthService() {
         try {
             Object data = FileStorage.loadData(STORAGE_FILE);
@@ -76,5 +77,14 @@ public class AuthService {
         } catch (IOException e) {
             System.out.println("Не удалось сохранить пользователей.");
         }
+    }
+
+    /**
+     * Геттер для получения списка всех зарегистрированных пользователей.
+     *
+     * @return Список всех пользователей
+     */
+    public Map<String, User> getAllUsers() {
+        return users;
     }
 }

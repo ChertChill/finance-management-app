@@ -13,8 +13,8 @@ import java.util.Scanner;
  * Обрабатывает команды пользователя и выполняет соответствующие действия.
  */
 public class CommandProcessor {
-    private AuthService authService;
-    private FinanceService financeService;
+    private final AuthService authService;
+    private final FinanceService financeService;
     private User currentUser;
 
     public CommandProcessor() {
@@ -49,6 +49,7 @@ public class CommandProcessor {
                             System.out.println("add-income <amount> <category> - Добавить доход");
                             System.out.println("add-expense <amount> <category> - Добавить расход");
                             System.out.println("set-budget <category> <amount> - Установить бюджет для категории");
+                            System.out.println("add-transfer <recipientUsername> <amount> - Отправить перевод другому пользователю");
                             System.out.println("\nКоманды для вывода общей информации:");
                             System.out.println("------------------------------------");
                             System.out.println("show-overview - Показать обзор кошелька");
@@ -159,14 +160,30 @@ public class CommandProcessor {
                             });
                             break;
 
+                        case "add-transfer":
+                            validateAndExecute(parts, "transfer", "transfer <recipientUsername> <amount>", () -> {
+                                try {
+                                    String recipientUsername = parts[1];
+                                    BigDecimal amount = new BigDecimal(parts[2]);
+
+                                    if (financeService.addTransfer(currentUser, recipientUsername, amount, authService)) {
+                                        System.out.println("Перевод успешно выполнен.");
+                                    } else {
+                                        System.out.println("Ошибка: Не удается выполнить перевод. Проверьте наличие средств и правильность данных.");
+                                    }
+                                } catch (NumberFormatException e) {
+                                    System.out.println("Ошибка: Неверный формат суммы. Используйте десятичное число, например: 150.00");
+                                }
+                            });
+                            break;
+
                         /**
                          * Команды для вывода общей информации
                          */
 
                         case "show-overview":
-                            validateAndExecute(parts, "single", "show-overview", () -> {
-                                System.out.println(financeService.getOverview(currentUser));
-                            });
+                            validateAndExecute(parts, "single", "show-overview",
+                                    () -> System.out.println(financeService.getOverview(currentUser)));
                             break;
 
                         case "show-balance":
@@ -328,6 +345,15 @@ public class CommandProcessor {
                         } else {
                             System.out.println("Ошибка: Слишком много аргументов. Используйте: " + usage);
                         }
+                    } else action.run();
+                }
+                break;
+
+            case "transfer":
+                // Случай для команд с аргументами логин получателя и сумма (для перевода другому пользователю)
+                if (isUserLoggedIn()) {
+                    if (parts.length != 3) {
+                        System.out.println("Ошибка: Команда должна содержать логин получателя и сумму. Используйте: " + usage);
                     } else action.run();
                 }
                 break;

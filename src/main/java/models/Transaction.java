@@ -8,10 +8,10 @@ import java.math.BigDecimal;
  * Хранит данные о сумме, дате, типе и категории транзакции.
  */
 public class Transaction implements Serializable {
-    private BigDecimal amount;
-    private String date;
-    private TransactionType type;
-    private String category;
+    private final BigDecimal amount;
+    private final String date;
+    private final TransactionType type;
+    private final String category;
 
     /**
      * Конструктор класса для инициализации всех полей.
