@@ -197,7 +197,7 @@ public class CommandProcessor {
                                 if (parts.length != 1) {
                                     System.out.println("Ошибка: Команда не должна содержать аргументы. Используйте: show-transactions.");
                                 } else {
-                                    System.out.println(financeService.getTransactions(currentUser));
+                                    System.out.println(financeService.getAllTransactions(currentUser));
                                 }
                             }
                             break;
