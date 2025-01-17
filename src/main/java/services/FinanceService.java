@@ -2,10 +2,7 @@ package services;
 
 import models.*;
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.TreeSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -21,8 +18,8 @@ public class FinanceService {
      * @param amount Сумма дохода.
      * @param category Категория дохода.
      */
-    public void addIncome(User user, BigDecimal amount, String category) {
-        user.getWallet().addIncome(amount, category);
+    public void addIncome(User user, String category, BigDecimal amount) {
+        user.getWallet().addIncome(category, amount);
     }
 
     /**
@@ -32,8 +29,8 @@ public class FinanceService {
      * @param amount Сумма расхода.
      * @param category Категория расхода.
      */
-    public void addExpense(User user, BigDecimal amount, String category) {
-        user.getWallet().addExpense(amount, category);
+    public void addExpense(User user, String category, BigDecimal amount) {
+        user.getWallet().addExpense(category, amount);
     }
 
     /**
@@ -55,50 +52,48 @@ public class FinanceService {
      * @return Строка с полной информацией о финансах пользователя.
      */
     public String getOverview(User user) {
-//        Wallet wallet = user.getWallet();
-//
-//        // Баланс
-//        BigDecimal balance = wallet.getBalance();
-//
-//        // Общая сумма доходов
-//        BigDecimal totalIncome = wallet.getTransactions().stream()
-//                .filter(t -> t.getType() == TransactionType.INCOME)
-//                .map(Transaction::getAmount)
-//                .reduce(BigDecimal.ZERO, BigDecimal::add);
-//
-//        // Общая сумма расходов
-//        BigDecimal totalExpenses = wallet.getTransactions().stream()
-//                .filter(t -> t.getType() == TransactionType.EXPENSE)
-//                .map(Transaction::getAmount)
-//                .reduce(BigDecimal.ZERO, BigDecimal::add);
-//
-//        // Список операций
-//        StringBuilder transactionsList = new StringBuilder("Список операций:\n");
-//        for (Transaction t : wallet.getTransactions()) {
-//            transactionsList.append(t.getDate())
-//                    .append(" - ")
-//                    .append(t.getType() == TransactionType.INCOME ? "Доход: +" : "Расход: -")
-//                    .append(t.getAmount())
-//                    .append(" (Категория: ")
-//                    .append(t.getCategory())
-//                    .append(")\n");
-//        }
-
         String balance = getBalance(user);
+        String overviewIncome = getIncomeOverview(user);
+        String overviewExpense = getExpenseOverview(user);
 
+        return String.format(
+                "%s\n---------------\n%s\n%s",
+                balance, overviewIncome, overviewExpense
+        );
+    }
+
+    /**
+     * Формирует отчет по доходам пользователя.
+     * Включает сводку по доходам, бюджетам и транзакциям.
+     *
+     * @param user Пользователь.
+     * @return Строка с обзором доходов.
+     */
+    public String getIncomeOverview(User user) {
         String summaryIncome = getIncomeSummary(user);
         String budgetIncome = getIncomeBudget(user);
         String transactionsIncome = getIncomeTransactions(user);
 
+        return String.format(
+                "\nДОХОДЫ\n======\n%s\n\n%s\n\n%s",
+                summaryIncome, budgetIncome, transactionsIncome
+        );
+    }
+
+    /**
+     * Формирует отчет по расходам пользователя.
+     * Включает сводку по расходам, бюджетам и транзакциям.
+     *
+     * @param user Пользователь.
+     * @return Строка с обзором расходов.
+     */
+    public String getExpenseOverview(User user) {
         String summaryExpense = getExpenseSummary(user);
         String budgetExpense = getExpenseBudget(user);
         String transactionsExpense = getExpenseTransactions(user);
 
-
         return String.format(
-                "%s\n---------------\n\nДОХОДЫ\n======\n%s\n\n%s\n\n%s\n\nРАСХОДЫ\n=======\n%s\n\n%s\n\n%s",
-                balance,
-                summaryIncome, budgetIncome, transactionsIncome,
+                "\nРАСХОДЫ\n=======\n%s\n\n%s\n\n%s",
                 summaryExpense, budgetExpense, transactionsExpense
         );
     }
@@ -126,17 +121,33 @@ public class FinanceService {
         );
     }
 
-    // Возвращает общую сумму доходов
+    /**
+     * Возвращает общую сумму доходов пользователя.
+     *
+     * @param user Пользователь.
+     * @return Сводка по доходам.
+     */
     public String getIncomeSummary(User user) {
         return getSummaryByType(user, TransactionType.INCOME);
     }
 
-    // Возвращает общую сумму расходов
+    /**
+     * Возвращает общую сумму расходов пользователя.
+     *
+     * @param user Пользователь.
+     * @return Сводка по расходам.
+     */
     public String getExpenseSummary(User user) {
         return getSummaryByType(user, TransactionType.EXPENSE);
     }
 
-    // Возвращает общую сумму по типу транзакции
+    /**
+     * Возвращает общую сумму по типу транзакции (доходы или расходы).
+     *
+     * @param user Пользователь.
+     * @param type Тип транзакции (доходы или расходы).
+     * @return Сводка по суммам доходов или расходов.
+     */
     public String getSummaryByType(User user, TransactionType type) {
         Wallet wallet = user.getWallet();
         String label = type == TransactionType.INCOME ? "доходов" : "расходов";
@@ -152,53 +163,20 @@ public class FinanceService {
     }
 
     /**
-     * Получает обзор всех бюджетов пользователя.
-     * Включает статус бюджета для каждой категории.
+     * Возвращает обзор всех бюджетов пользователя.
+     * Включает статус бюджета для каждой категории (доходы и расходы).
      *
-     * @param user Пользователь, для которого получаем обзор бюджета.
-     * @return Строка с бюджетным обзором для всех категорий.
+     * @param user Пользователь.
+     * @return Строка с бюджетным обзором.
      */
     public String getBudget(User user) {
-//        Wallet wallet = user.getWallet();
-//        StringBuilder overview = new StringBuilder();
-//
-//        // Собираем категории из бюджета и транзакций
-//        Set<String> categories = new HashSet<>(wallet.getBudgets().keySet());
-//        wallet.getTransactions().stream()
-//                .map(Transaction::getCategory)
-//                .forEach(categories::add);
-//
-//        // Проверяем, есть ли категории
-//        if (categories.isEmpty()) {
-//            overview.append("Нет доступных категорий для бюджета.");
-//        } else {
-//            // Обрабатываем каждую категорию
-//            overview.append("Бюджет по всем категориям:\n");
-//            overview.append("--------------------------");
-//            for (String category : categories) {
-//                BigDecimal budget = wallet.getBudget(category);
-//                BigDecimal spent = wallet.getBudgetSpent(category);
-//                BigDecimal remain = wallet.getBudgetRemain(category);
-//
-//                overview.append(
-//                        String.format(
-//                                "\nКатегория: %s\n----------\nБюджет: %s, потрачено: %s\nОстаток бюджета: %s\n",
-//                                category, budget, spent, remain
-//                        )
-//                );
-//            }
-//        }
-//
-//        String str = overview.toString();
-//        return str.substring(0, str.length() - 1);
-
         return String.format(
                 "%s\n\n%s", getIncomeBudget(user), getExpenseBudget(user)
         );
     }
 
     /**
-     * Получает обзор бюджета по доходам.
+     * Возвращает обзор бюджета по доходам.
      * Включает статус бюджета для каждой категории, связанных с доходами.
      *
      * @param user Пользователь, для которого получаем обзор бюджета.
@@ -209,7 +187,7 @@ public class FinanceService {
     }
 
     /**
-     * Получает обзор бюджета по расходам.
+     * Возвращает обзор бюджета по расходам.
      * Включает статус бюджета для каждой категории, связанных с расходами.
      *
      * @param user Пользователь, для которого получаем обзор бюджета.
@@ -233,26 +211,37 @@ public class FinanceService {
         String label = type == TransactionType.INCOME ? "доходов, Доходы" : "расходов, Бюджет";
         String[] labels = label.split(", ");
 
-//        // Собираем категории из бюджета и транзакций
-//        Set<String> categories = new HashSet<>(wallet.getBudgets().keySet());
-//        wallet.getTransactions().stream()
-//                .filter(t -> t.getType() == type)
-//                .map(Transaction::getCategory)
-//                .forEach(categories::add);
-
         // Собираем категории, связанные с указанным типом транзакции
-        Set<String> categories = wallet.getTransactions().stream()
+        Set<String> transactionCategories = wallet.getTransactions().stream()
                 .filter(t -> t.getType() == type)
                 .map(Transaction::getCategory)
-                .collect(Collectors.toCollection(TreeSet::new)); // TreeSet для сортировки по алфавиту
+                .collect(Collectors.toSet()); // Используем Set для категорий из транзакций
+
+        // Собираем категории из бюджета, у которых нет транзакций, но есть лимит, и отображаем их только для expense
+        Set<String> categoriesWithoutTransactions = new HashSet<>();
+        if (type == TransactionType.EXPENSE) {
+            categoriesWithoutTransactions = wallet.getBudgets().keySet().stream()
+                    .filter(category -> wallet.getTransactions().stream()
+                            .noneMatch(t -> t.getCategory().equals(category)))
+                    .collect(Collectors.toSet()); // Фильтруем категории, у которых нет транзакций
+        }
+
+        // Объединяем категории с транзакциями и без транзакций для типа "расходы" (не для доходов)
+        Set<String> allCategories = new HashSet<>(transactionCategories);
+        allCategories.addAll(categoriesWithoutTransactions);  // Добавляем категории без транзакций только для расхода
+
+        // Сортируем объединённые категории по алфавиту
+        List<String> categories = new ArrayList<>(allCategories);
+        Collections.sort(categories);
 
         // Проверяем, есть ли категории
         if (categories.isEmpty()) {
             overview.append("Нет доступных категорий для ").append(labels[0]).append(".");
         } else {
             // Обрабатываем каждую категорию
-            overview.append(labels[1]).append(" по всем категориям:\n");
+            overview.append(String.format("%s по всем категориям: %s\n", labels[1], categories));
             overview.append("--------------------------");
+
             for (String category : categories) {
                 if (type == TransactionType.INCOME) {
                     // Сумма доходов по категории
@@ -318,17 +307,24 @@ public class FinanceService {
 
         String str = transactionsList.toString();
         return str.substring(0, str.length() - 1);
-
-//        return String.format(
-//                "Список всех операций:\n---------------------\n%s\n\n%s",
-//                getIncomeTransactions(user), getExpenseTransactions(user)
-//        );
     }
 
+    /**
+     * Возвращает список всех доходных транзакций пользователя.
+     *
+     * @param user Пользователь.
+     * @return Строка со списком доходных транзакций.
+     */
     public String getIncomeTransactions(User user) {
         return getTransactionsByType(user, TransactionType.INCOME);
     }
 
+    /**
+     * Возвращает список всех расходных транзакций пользователя.
+     *
+     * @param user Пользователь.
+     * @return Строка со списком расходных транзакций.
+     */
     public String getExpenseTransactions(User user) {
         return getTransactionsByType(user, TransactionType.EXPENSE);
     }
@@ -374,68 +370,106 @@ public class FinanceService {
 
 
     /**
-     * Получает информацию о состоянии бюджета и оставшемся лимите для конкретной категории.
+     * Получает информацию о состоянии бюджета и оставшемся лимите для указанных категорий.
      *
      * @param user Пользователь, для которого получаем данные.
-     * @param category Название категории.
-     * @return Строка с состоянием бюджета и оставшимся лимитом для категории, или сообщение, что категории нет.
+     * @param categories Список категорий.
+     * @return Строка с состоянием бюджета для указанных категорий.
      */
-    public String getCategoryBudget(User user, String category) {
+    public String getCategoryBudget(User user, List<String> categories) {
         Wallet wallet = user.getWallet();
+        StringBuilder overview = new StringBuilder();
 
-        // Проверяем, существует ли категория
-        boolean categoryExists = wallet.getBudgets().containsKey(category) || wallet.getTransactions().stream()
-                .anyMatch(t -> t.getCategory().equals(category));
-
-        if (!categoryExists) {
-            return "Бюджет для категории \"" + category + "\" отсутствует.";
+        if (categories.isEmpty()) {
+            return "Не указаны категории.";
         }
 
-        // Получаем информацию о бюджете для категории
-        BigDecimal budget = wallet.getBudget(category);
-        BigDecimal spent = wallet.getBudgetSpent(category);
-        BigDecimal remain = wallet.getBudgetRemain(category);
+        for (String category : categories) {
+            // Проверяем, существует ли категория
+            boolean categoryExists = wallet.getBudgets().containsKey(category) || wallet.getTransactions().stream()
+                    .anyMatch(t -> t.getCategory().equals(category));
 
-        String str = String.format(
-            "Бюджет для категории: %s\n---------------------\nБюджет: %s, потрачено: %s\nОстаток бюджета: %s\n",
-            category, budget, spent, remain
-        );
+            if (!categoryExists) {
+                overview.append(String.format("\nБюджет для категории \"%s\" отсутствует.\n", category));
+                continue;
+            }
 
-        return str.substring(0, str.length() - 1);
+            // Определяем тип категории на основе транзакций
+            boolean isIncome = wallet.getTransactions().stream()
+                    .anyMatch(t -> t.getCategory().equals(category) && t.getType() == TransactionType.INCOME);
+
+            if (isIncome) {
+                // Сумма доходов по категории
+                BigDecimal income = wallet.getTransactions().stream()
+                        .filter(t -> t.getType() == TransactionType.INCOME && t.getCategory().equals(category))
+                        .map(Transaction::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                overview.append(
+                        String.format(
+                                "\nКатегория: %s\n----------\nДоход: %s\n",
+                                category, income
+                        )
+                );
+            } else {
+                // Получаем информацию о бюджете для категории
+                BigDecimal budget = wallet.getBudget(category);
+                BigDecimal spent = wallet.getBudgetSpent(category);
+                BigDecimal remain = wallet.getBudgetRemain(category);
+
+                overview.append(
+                        String.format(
+                                "\nБюджет для категории: %s\n---------------------\nБюджет: %s, потрачено: %s\nОстаток бюджета: %s\n",
+                                category, budget, spent, remain
+                        )
+                );
+            }
+        }
+
+        return overview.toString().trim();
     }
 
     /**
-     * Получает список транзакций по заданной категории.
+     * Получает список транзакций для нескольких категорий с учетом типа транзакций.
      *
      * @param user Пользователь, для которого запрашиваются транзакции.
-     * @param category Категория, по которой ищутся транзакции.
-     * @return Строка с описанием транзакций или сообщение, что транзакций нет.
+     * @param categories Список категорий.
+     * @return Строка с описанием транзакций для указанных категорий.
      */
-    public String getCategoryTransactions(User user, String category) {
+    public String getCategoryTransactions(User user, List<String> categories) {
         Wallet wallet = user.getWallet();
+        StringBuilder transactionsList = new StringBuilder();
 
-        // Фильтруем транзакции по заданной категории
-        List<Transaction> transactions = wallet.getTransactionsByCategory(category);
-
-        // Проверяем, есть ли транзакции
-        if (transactions.isEmpty()) {
-            return "Транзакции для категории \"" + category + "\" отсутствуют.";
+        if (categories.isEmpty()) {
+            return "Не указаны категории.";
         }
 
-        // Формируем строку с транзакциями
-        StringBuilder result = new StringBuilder("Транзакции для категории: " + category + "\n");
-        result.append("-------------------------\n");
-        for (Transaction t : transactions) {
-            result.append(String.format(
-                    "%s - %s: %s\n",
-                    t.getDate(),
-                    t.getType() == TransactionType.INCOME ? "Доход" : "Расход",
-                    t.getAmount()
-            ));
+        for (String category : categories) {
+            // Фильтруем транзакции по категории
+            List<Transaction> filteredTransactions = wallet.getTransactions().stream()
+                    .filter(t -> t.getCategory().equals(category))
+                    .toList();
+
+            // Проверяем, есть ли транзакции
+            if (filteredTransactions.isEmpty()) {
+                transactionsList.append(String.format("\nТранзакции для категории \"%s\" отсутствуют.\n", category));
+                continue;
+            }
+
+            transactionsList.append(String.format("\nТранзакции для категории: %s\n", category));
+            transactionsList.append("-------------------------\n");
+
+            for (Transaction t : filteredTransactions) {
+                transactionsList.append(String.format(
+                        "%s - %s: %s\n",
+                        t.getDate(),
+                        t.getType() == TransactionType.INCOME ? "Доход" : "Расход",
+                        t.getAmount()
+                ));
+            }
         }
 
-        String str = result.toString();
-        return str.substring(0, str.length() - 1);
+        return transactionsList.toString().trim();
     }
 
 }
